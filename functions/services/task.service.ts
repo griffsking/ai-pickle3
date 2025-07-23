@@ -43,14 +43,7 @@ import {
   CollectionReference,
 } from '@angular/fire/firestore';
 import { v4 as uuidv4 } from 'uuid';
-import {
-  AI,
-  getGenerativeModel,
-  getAI,
-  Schema,
-  AIError,
-  GoogleAIBackend,
-} from '@angular/fire/ai';
+import { AI, getGenerativeModel, getAI, Schema, AIError, GoogleAIBackend } from '@angular/fire/ai';
 import { environment } from '../../environments/environments';
 
 type Priority = 'none' | 'low' | 'medium' | 'high';
@@ -74,7 +67,7 @@ export type TaskWithSubtasks = {
 type GeneratedTasks = {
   title: string;
   subtasks: string[];
-};
+}
 
 const taskSchema = Schema.object({
   properties: {
@@ -82,16 +75,16 @@ const taskSchema = Schema.object({
     subtasks: Schema.array({
       items: Schema.string(),
     }),
-  },
+  }
 });
 
 const MODEL_CONFIG = {
-  model: 'gemini-2.5-flash',
+  model: 'gemini-2.5-flash-preview-05-20',
   generationConfig: {
     responseMimeType: 'application/json',
     responseSchema: taskSchema,
   },
-  systemInstruction: `You are a professional Jewish matchmaker. Your goal is to analyze the given profile data and answer questions and give advice on it to the best of your abilities.`,
+  systemInstruction: `Keep task names short, ideally within 7 words. The subtasks should follow logical order.`,
 };
 
 @Injectable({
@@ -162,7 +155,8 @@ export class TaskService {
       duration = 10000;
     }
     if (error.message.indexOf('Missing or insufficient permissions') >= 0) {
-      userMessage = `Error communicating with Firestore. Please check status at https://console.firebase.google.com/project/${projectId}/firestore`;
+      userMessage =
+        `Error communicating with Firestore. Please check status at https://console.firebase.google.com/project/${projectId}/firestore`;
       duration = 10000;
     }
     if (error.message.indexOf('The query requires an index') >= 0) {
@@ -195,7 +189,8 @@ export class TaskService {
         initialInterval: 500,
         maxInterval: 2000,
         maxRetries: 20,
-      }),
+      }
+      ),
       switchMap((taskCount) => {
         this.firestoreReadySubject.next(true);
         if (taskCount.data().count === 0) {
@@ -234,14 +229,11 @@ export class TaskService {
     return id ? doc(taskCollection, id) : doc(taskCollection); // Firestore generates ID if not provided
   }
 
-  async fileToGenerativePart(file: Blob): Promise<string> {
-    //API is expected the json as a text string
-    return await file.text();
+  async fileToGenerativePart(file: File) {
     const base64EncodedDataPromise = new Promise((resolve) => {
       const reader = new FileReader();
       reader.onloadend = () =>
         resolve(JSON.stringify(reader?.result).split(',')[1]);
-      console.log('file: ' + file.type);
       reader.readAsDataURL(file);
     });
     const result = await base64EncodedDataPromise;
@@ -262,26 +254,22 @@ export class TaskService {
   }
 
   async generateTask(input: {
-    file?: File;
     prompt: string;
   }): Promise<GeneratedTasks> {
-    const { file, prompt } = input;
-    console.log(file);
-    if (!file && !prompt) {
+    const { prompt } = input;
+
+    if (!prompt) {
       return {
-        title: 'Please provide a prompt',
+        title: "Please provide a prompt",
         subtasks: [],
       };
     }
 
-    const imagePart = file ? await this.fileToGenerativePart(file) : '';
-
     try {
       const result = await this.experimentModel.generateContent(
-        [prompt, imagePart].filter(Boolean)
+        [prompt].filter(Boolean)
       );
       const response = await result.response.text();
-      console.log('response: ' + response);
       return JSON.parse(response);
     } catch (error) {
       this.handleError(error, 'Failed to generate subtasks');
