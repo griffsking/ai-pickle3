@@ -5,6 +5,8 @@ import {
   ChangeDetectionStrategy,
   Component,
 } from '@angular/core';
+import { getApp } from 'firebase/app';
+//import { collection, getFirestore, query, where } from "firebase/firestore";
 
 @Component({
   selector: 'app-dummydata',

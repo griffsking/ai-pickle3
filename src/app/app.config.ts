@@ -7,7 +7,7 @@ import {
 } from '@angular/fire/app-check';
 import { getAuth, provideAuth } from '@angular/fire/auth';
 import { getAI, GoogleAIBackend, provideAI } from '@angular/fire/ai';
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, provideFirestore } from '@angular/fire/firestore';
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, provideFirestore } from '@angular/fire/firestore';
 import { environment } from '../environments/environments';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 
@@ -15,11 +15,15 @@ declare global {
   var FIREBASE_APPCHECK_DEBUG_TOKEN: string;
 }
 
+//const app = initializeApp(environment.firebase);
+//const db = getFirestore(app);
+
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
-    provideFirebaseApp(() =>
-      initializeApp(environment.firebase), 
+    provideFirebaseApp(() => {
+      return initializeApp(environment.firebase);
+    }
     ),
     // Turn on app check for Vertex AI in Firebase
     // provideAppCheck(() => {

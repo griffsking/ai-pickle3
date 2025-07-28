@@ -52,6 +52,8 @@ import {
   GoogleAIBackend,
 } from '@angular/fire/ai';
 import { environment } from '../../environments/environments';
+import { LogLevel, setLogLevel } from '@angular/fire';
+setLogLevel(LogLevel.SILENT);
 
 type Priority = 'none' | 'low' | 'medium' | 'high';
 

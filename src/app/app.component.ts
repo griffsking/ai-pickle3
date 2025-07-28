@@ -3,10 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ChangeDetectionStrategy } from '@angular/core';
 import { TaskWithSubtasks, Task, TaskService } from './services/task.service';
-import { Timestamp } from 'firebase/firestore';
+import { collection, getDocs, getFirestore, query, Timestamp } from 'firebase/firestore';
 import { InlineDataPart } from 'firebase/ai';
 // import * as roughProfiles from '../assets/dummydata.json';
 import { DummyData } from './dummydata.component';
+import { getApp } from 'firebase/app';
 //import { functions } from '../firebaseConfig';
 //import { httpsCallable } from 'firebase/functions';
 
@@ -49,9 +50,17 @@ export class AppComponent implements OnInit {
     const jsonString = JSON.stringify(jsonData);
     const blob = new Blob([jsonString], { type: 'application/json' });
     // Create a File instance for the AI service
-    this.bigdummydataFile = new File([blob], 'dummydata.json', {
-      type: 'application/json',
-    });
+    /*const matchSnapshot = await getDocs(collection(getFirestore(getApp()), "matchmakersurveys"));
+    //console.log(matchSnapshot);
+    const matchList = matchSnapshot.docs.map(doc => doc.data());
+    console.log(matchList);
+    matchSnapshot.forEach((doc) => {
+      console.log("cock");
+      console.log(doc.id, " => ", doc.data());
+    });*/
+    //this.bigdummydataFile = new File([blob], 'dummydata.json', {
+    //  type: 'application/json',
+    //});
   }
 
   async callFunction() {

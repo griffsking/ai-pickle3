@@ -18,4 +18,4 @@ jobs:
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SAMPLE_FIREBASE_AI_APP_62FEA }}
-          projectId: sample-firebase-ai-app-62fea
+          projectId: ai-pickle2

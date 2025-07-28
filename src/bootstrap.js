@@ -3,9 +3,12 @@ window["APP_TEMPLATE_BOOTSTRAP"] = {
 
     firebase: {
       apiKey: "AIzaSyD3nHKnbi_ZC0ZqFaRH6PSBSTVjNKL-kuA",
-      authDomain: "sample-firebase-ai-app-62fea.firebaseapp.com",
-      projectId: "sample-firebase-ai-app-62fea",
-      storageBucket: "sample-firebase-ai-app-62fea.firebasestorage.app",
+      //authDomain: "sample-firebase-ai-app-62fea.firebaseapp.com",
+      //projectId: "sample-firebase-ai-app-62fea",
+      //storageBucket: "sample-firebase-ai-app-62fea.firebasestorage.app",
+      authDomain: "ai-pickle2.firebaseapp.com",
+      projectId: "ai-pickle2",
+      storageBucket: "ai-pickle2.firebasestorage.app",
       messagingSenderId: "645522859617",
       appId: "1:645522859617:web:d6b9ee3921165721dfac20",
     }
