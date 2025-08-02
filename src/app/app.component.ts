@@ -8,8 +8,12 @@ import { InlineDataPart } from 'firebase/ai';
 // import * as roughProfiles from '../assets/dummydata.json';
 import { DummyData } from './dummydata.component';
 import { getApp } from 'firebase/app';
-//import { functions } from '../firebaseConfig';
 //import { httpsCallable } from 'firebase/functions';
+//import { getDatabase } from "firebase-admin/database";
+//import { helloWorld } from "../../functions/index";
+import * as firebase from "firebase/app";
+import "firebase/functions";
+import { connectFunctionsEmulator, getFunctions, httpsCallable } from 'firebase/functions';
 
 @Component({
   selector: 'app-root',
@@ -43,24 +47,35 @@ export class AppComponent implements OnInit {
   }
 
   async ngAfterViewInit() {
+    const functions = getFunctions( getApp(), "us-central1" ); 
+    connectFunctionsEmulator( functions, "localhost", 5001 );
+    const helloWorld = httpsCallable( functions, 'helloWorld' );
+    //const helloWorld = httpsCallable(getFunctions(getApp()), 'helloWorld');
+    helloWorld({}).then((result) => {
+    // Read result of the Cloud Function.
+      console.log("worked");
+      const data = result.data;
+    });
+    //fetch("https://us-central1-ai-pickle2.cloudfunctions.net/helloWorld");
     // Load JSON asset from the Angular assets folder
     const response = await fetch('assets/dummydata.json');
     const jsonData = await response.json();
     // Convert JSON object to string and create a Blob
     const jsonString = JSON.stringify(jsonData);
-    const blob = new Blob([jsonString], { type: 'application/json' });
+    //const blob = new Blob([jsonString], { type: 'application/json' });
     // Create a File instance for the AI service
-    /*const matchSnapshot = await getDocs(collection(getFirestore(getApp()), "matchmakersurveys"));
+    const matchSnapshot = await getDocs(collection(getFirestore(getApp()), "profiles"));
     //console.log(matchSnapshot);
     const matchList = matchSnapshot.docs.map(doc => doc.data());
+    const matchString = JSON.stringify(matchList);
+    const blob = new Blob([matchString], { type: 'application/json' });
     console.log(matchList);
-    matchSnapshot.forEach((doc) => {
-      console.log("cock");
-      console.log(doc.id, " => ", doc.data());
-    });*/
-    //this.bigdummydataFile = new File([blob], 'dummydata.json', {
-    //  type: 'application/json',
+    //matchSnapshot.forEach((doc) => {
+    //  console.log(doc.id, " => ", doc.data());
     //});
+    this.bigdummydataFile = new File([blob], 'dummydata.json', {
+      type: 'application/json',
+    });
   }
 
   async callFunction() {
@@ -133,7 +148,7 @@ export class AppComponent implements OnInit {
       const { title: generatedTitle, subtasks: generatedSubtasks } =
         await this.taskService.generateTask({
           file,
-          prompt: `What does Jason love?`,
+          prompt: `What does Aaron love?`,
           // prompt: `What is in the image?`,
           // prompt: `What is in the text file?`,
         });

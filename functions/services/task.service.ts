@@ -79,12 +79,12 @@ const taskSchema = Schema.object({
 });
 
 const MODEL_CONFIG = {
-  model: 'gemini-2.5-flash-preview-05-20',
+  model: 'gemini-2.5-flash',
   generationConfig: {
     responseMimeType: 'application/json',
     responseSchema: taskSchema,
   },
-  systemInstruction: `Keep task names short, ideally within 7 words. The subtasks should follow logical order.`,
+  systemInstruction: `You are a professional Jewish matchmaker. Your goal is to analyze the given profile data and answer questions and give advice on it to the best of your abilities.`,
 };
 
 @Injectable({
