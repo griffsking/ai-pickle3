@@ -3,7 +3,13 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ChangeDetectionStrategy } from '@angular/core';
 import { TaskWithSubtasks, Task, TaskService } from './services/task.service';
-import { collection, getDocs, getFirestore, query, Timestamp } from 'firebase/firestore';
+import {
+  collection,
+  getDocs,
+  getFirestore,
+  query,
+  Timestamp,
+} from 'firebase/firestore';
 import { InlineDataPart } from 'firebase/ai';
 // import * as roughProfiles from '../assets/dummydata.json';
 import { DummyData } from './dummydata.component';
@@ -11,9 +17,13 @@ import { getApp } from 'firebase/app';
 //import { httpsCallable } from 'firebase/functions';
 //import { getDatabase } from "firebase-admin/database";
 //import { helloWorld } from "../../functions/index";
-import * as firebase from "firebase/app";
-import "firebase/functions";
-import { connectFunctionsEmulator, getFunctions, httpsCallable } from 'firebase/functions';
+import * as firebase from 'firebase/app';
+import 'firebase/functions';
+import {
+  connectFunctionsEmulator,
+  getFunctions,
+  httpsCallable,
+} from 'firebase/functions';
 
 @Component({
   selector: 'app-root',
@@ -47,15 +57,9 @@ export class AppComponent implements OnInit {
   }
 
   async ngAfterViewInit() {
-    const functions = getFunctions( getApp(), "us-central1" ); 
-    connectFunctionsEmulator( functions, "localhost", 5001 );
-    const helloWorld = httpsCallable( functions, 'helloWorld' );
-    //const helloWorld = httpsCallable(getFunctions(getApp()), 'helloWorld');
-    helloWorld({}).then((result) => {
-    // Read result of the Cloud Function.
-      console.log("worked");
-      const data = result.data;
-    });
+    const functions = getFunctions(getApp(), 'us-central1');
+    connectFunctionsEmulator(functions, 'localhost', 5001);
+    await this.callFunction();
     //fetch("https://us-central1-ai-pickle2.cloudfunctions.net/helloWorld");
     // Load JSON asset from the Angular assets folder
     const response = await fetch('assets/dummydata.json');
@@ -64,9 +68,11 @@ export class AppComponent implements OnInit {
     const jsonString = JSON.stringify(jsonData);
     //const blob = new Blob([jsonString], { type: 'application/json' });
     // Create a File instance for the AI service
-    const matchSnapshot = await getDocs(collection(getFirestore(getApp()), "profiles"));
+    const matchSnapshot = await getDocs(
+      collection(getFirestore(getApp()), 'profiles')
+    );
     //console.log(matchSnapshot);
-    const matchList = matchSnapshot.docs.map(doc => doc.data());
+    const matchList = matchSnapshot.docs.map((doc) => doc.data());
     const matchString = JSON.stringify(matchList);
     const blob = new Blob([matchString], { type: 'application/json' });
     console.log(matchList);
@@ -79,10 +85,10 @@ export class AppComponent implements OnInit {
   }
 
   async callFunction() {
-    //const helloWorld = httpsCallable(functions, 'helloWorld');
-    //const result = await helloWorld();
-    //console.log(result.data);
-    //return result.data;
+    const helloWorld = httpsCallable(getFunctions(getApp()), 'helloWorld');
+    const result = await helloWorld();
+    console.log(result.data);
+    return result.data;
   }
 
   addToChatFieldEnter(event: KeyboardEvent) {
@@ -135,11 +141,12 @@ export class AppComponent implements OnInit {
 
   async onGoClick() {
     await this.generateMaintask();
-    await this.callFunction();
   }
 
   async onGoClickEnter(event: KeyboardEvent) {
-    if (event.key === 'Enter') await this.generateMaintask();
+    if (event.key === 'Enter') {
+      await this.generateMaintask();
+    }
   }
 
   async generateMaintask(): Promise<void> {
