@@ -2,7 +2,7 @@ import { ViewChild, ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ChangeDetectionStrategy } from '@angular/core';
-import { TaskWithSubtasks, Task, TaskService } from './services/task.service';
+import { /*TaskWithSubtasks,*/ Task, TaskService } from './services/task.service';
 import { collection, getDocs, getFirestore, query, Timestamp } from 'firebase/firestore';
 import { InlineDataPart } from 'firebase/ai';
 // import * as roughProfiles from '../assets/dummydata.json';
@@ -29,7 +29,7 @@ export class AppComponent implements OnInit {
   myInput: string = '';
   textStream: string = '';
   chatRespId: number = 0;
-  generatedTask?: TaskWithSubtasks;
+  //generatedTask?: TaskWithSubtasks;
   dummydata: Blob = new Blob();
 
   @ViewChild('dummydata') bigdummydata!: DummyData;
@@ -145,18 +145,17 @@ export class AppComponent implements OnInit {
   async generateMaintask(): Promise<void> {
     try {
       const file = this.bigdummydataFile;
-      const { title: generatedTitle, subtasks: generatedSubtasks } =
+      const { response: generatedResponse/*, subtasks: generatedSubtasks*/ } =
         await this.taskService.generateTask({
           file,
-          prompt: `What does Aaron love?`,
-          // prompt: `What is in the image?`,
-          // prompt: `What is in the text file?`,
+          prompt: this.myInput,
+          //prompt: `What does Aaron love?`,
         });
       document.getElementById('resp' + this.chatRespId)!.innerText = document
         .getElementById('resp' + this.chatRespId)
-        ?.innerText.concat(' ' + generatedTitle)!;
+        ?.innerText.concat(' ' + generatedResponse)!;
 
-      const newTaskRef = this.taskService.createTaskRef();
+      /*const newTaskRef = this.taskService.createTaskRef();
       const maintask: Task = {
         id: newTaskRef.id,
         title: generatedTitle,
@@ -176,7 +175,7 @@ export class AppComponent implements OnInit {
           createdTime: maintask.createdTime,
         };
       });
-      this.generatedTask = { maintask, subtasks };
+      this.generatedTask = { maintask, subtasks };*/
     } catch (error) {
       this.handleError(error, 'Failed to generate main task.');
     }
