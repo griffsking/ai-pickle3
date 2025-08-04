@@ -59,7 +59,7 @@ type Priority = 'none' | 'low' | 'medium' | 'high';
 
 export type Task = {
   id: string;
-  title: string;
+  response: string;
   priority?: Priority; // Optional: only for main tasks
   completed: boolean;
   owner: string;
@@ -68,22 +68,22 @@ export type Task = {
   parentId?: string; // Optional: only for subtasks
 };
 
-export type TaskWithSubtasks = {
+/*export type TaskWithSubtasks = {
   maintask: Task;
   subtasks: Task[];
-};
+};*/
 
 type GeneratedTasks = {
-  title: string;
-  subtasks: string[];
+  response: string;
+  //subtasks: string[];
 };
 
 const taskSchema = Schema.object({
   properties: {
-    title: Schema.string(),
-    subtasks: Schema.array({
+    response: Schema.string(),
+    /*subtasks: Schema.array({
       items: Schema.string(),
-    }),
+    }),*/
   },
 });
 
@@ -93,7 +93,8 @@ const MODEL_CONFIG = {
     responseMimeType: 'application/json',
     responseSchema: taskSchema,
   },
-  systemInstruction: `You are a professional Jewish matchmaker. Your goal is to analyze the given profile data and answer questions and give advice on it to the best of your abilities.`,
+  systemInstruction: `You are a professional Jewish matchmaker. Analyze the JSON data and return data based off of keywords from the prompt.
+  For example, if the prompt is: "What does Aaron love?", the response should be: "Aaron loves basketball and Sushi."`,
 };
 
 @Injectable({
@@ -222,14 +223,14 @@ export class TaskService {
     return getCountFromServer(taskQuery);
   }
 
-  loadSubtasks(maintaskId: string): Observable<Task[]> {
+  /*loadSubtasks(maintaskId: string): Observable<Task[]> {
     const subtaskQuery = query(
       collection(this.firestore, 'todos') as CollectionReference<Task, Task>,
       where('parentId', '==', maintaskId),
       orderBy('order', 'asc')
     );
     return collectionData(subtaskQuery, { idField: 'id' });
-  }
+  }*/
 
   createTaskRef(id?: string) {
     const taskCollection = collection(this.firestore, 'todos');
@@ -271,11 +272,12 @@ export class TaskService {
     console.log(file);
     if (!file && !prompt) {
       return {
-        title: 'Please provide a prompt',
-        subtasks: [],
+        response: 'Please provide a prompt',
+        //subtasks: [],
       };
     }
 
+    //This is the JSON part
     const imagePart = file ? await this.fileToGenerativePart(file) : '';
 
     try {
@@ -283,7 +285,7 @@ export class TaskService {
         [prompt, imagePart].filter(Boolean)
       );
       const response = await result.response.text();
-      console.log('response: ' + response);
+      console.log(response);
       return JSON.parse(response);
     } catch (error) {
       this.handleError(error, 'Failed to generate subtasks');
@@ -291,9 +293,9 @@ export class TaskService {
     }
   }
 
-  async addMaintaskWithSubtasks(
+  /*async addMaintaskWithSubtasks(
     maintask: Omit<Task, 'id'>,
-    subtasks: Omit<Task, 'id'>[]
+    //subtasks: Omit<Task, 'id'>[]
   ): Promise<void> {
     const userId =
       this.currentUser?.uid || this.localUid || this.generateLocalUid();
@@ -351,5 +353,5 @@ export class TaskService {
     } catch (error) {
       this.handleError(error);
     }
-  }
+  }*/
 }
