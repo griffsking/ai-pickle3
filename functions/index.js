@@ -30,3 +30,28 @@ exports.helloWorld = onCall((request) => {
   logger.info("helloWorld called", { uid: request.auth?.uid ?? null });
   return { message: "Hello from Firebase!", nonce: Math.random() };
 });
+
+/*exports.generateTask = onCall(async (file, prompt) => {
+  const { file, prompt } = input;
+  console.log(file);
+  if (!file && !prompt) {
+    return {
+      response: 'Please provide a prompt',
+      //subtasks: [],
+    };
+  }
+
+  //This is the JSON part
+  const imagePart = file ? await file.text() : '';
+
+  try {
+    const result = await this.experimentModel.generateContent(
+      [prompt, imagePart].filter(Boolean)
+    );
+    const response = await result.response.text();
+    console.log(response);
+    return JSON.parse(response);
+  } catch (error) {
+    this.handleError(error, 'Failed to generate subtasks');
+    throw error;
+  }})*/

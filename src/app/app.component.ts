@@ -53,7 +53,10 @@ export class AppComponent implements OnInit {
   async ngAfterViewInit() {
     const functions = getFunctions(getApp(), 'us-central1');
     connectFunctionsEmulator(functions, 'localhost', 5001);
-    await this.callFunction();
+    const helloWorld = httpsCallable(functions, 'helloWorld');
+    const result = await helloWorld();
+    console.log(result.data);
+    return result.data;
     //fetch("https://us-central1-ai-pickle2.cloudfunctions.net/helloWorld");
     // Load JSON asset from the Angular assets folder
     const response = await fetch('assets/dummydata.json');
@@ -76,13 +79,6 @@ export class AppComponent implements OnInit {
     this.bigdummydataFile = new File([blob], 'dummydata.json', {
       type: 'application/json',
     });
-  }
-
-  async callFunction() {
-    const helloWorld = httpsCallable(getFunctions(getApp()), 'helloWorld');
-    const result = await helloWorld();
-    console.log(result.data);
-    return result.data;
   }
 
   addToChatFieldEnter(event: KeyboardEvent) {
