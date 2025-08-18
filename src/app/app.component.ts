@@ -1,42 +1,30 @@
-import { ViewChild, ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ChangeDetectionStrategy } from '@angular/core';
-import { /*TaskWithSubtasks,*/ Task, TaskService } from './services/task.service';
-import { collection, getDocs, getFirestore, query, Timestamp } from 'firebase/firestore';
-import { InlineDataPart } from 'firebase/ai';
-// import * as roughProfiles from '../assets/dummydata.json';
-import { DummyData } from './dummydata.component';
+import { TaskService } from './services/task.service';
 import { getApp } from 'firebase/app';
-//import { httpsCallable } from 'firebase/functions';
-//import { getDatabase } from "firebase-admin/database";
-//import { helloWorld } from "../../functions/index";
-import * as firebase from 'firebase/app';
 import 'firebase/functions';
-import {
-  connectFunctionsEmulator,
-  getFunctions,
-  httpsCallable,
-} from 'firebase/functions';
+import { connectFunctionsEmulator, getFunctions } from 'firebase/functions';
+import { Injectable } from '@angular/core';
+import { v4 as uuidv4 } from 'uuid';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule, DummyData],
+  imports: [CommonModule, FormsModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AppComponent implements OnInit {
-  // @ViewChild('room') roomImage! : CheckboximageComponent;
 
+@Injectable({
+  providedIn: 'root',
+})
+export class AppComponent implements OnInit {
   myInput: string = '';
   textStream: string = '';
   chatRespId: number = 0;
-  //generatedTask?: TaskWithSubtasks;
-  dummydata: Blob = new Blob();
-
-  @ViewChild('dummydata') bigdummydata!: DummyData;
 
   bigdummydataFile?: File;
 
@@ -52,33 +40,18 @@ export class AppComponent implements OnInit {
 
   async ngAfterViewInit() {
     const functions = getFunctions(getApp(), 'us-central1');
-    connectFunctionsEmulator(functions, 'localhost', 5001);
-    const helloWorld = httpsCallable(functions, 'helloWorld');
-    const result = await helloWorld();
-    console.log(result.data);
-    return result.data;
-    //fetch("https://us-central1-ai-pickle2.cloudfunctions.net/helloWorld");
-    // Load JSON asset from the Angular assets folder
-    const response = await fetch('assets/dummydata.json');
-    const jsonData = await response.json();
-    // Convert JSON object to string and create a Blob
-    const jsonString = JSON.stringify(jsonData);
-    //const blob = new Blob([jsonString], { type: 'application/json' });
-    // Create a File instance for the AI service
-    const matchSnapshot = await getDocs(
-      collection(getFirestore(getApp()), 'profiles')
-    );
-    //console.log(matchSnapshot);
-    const matchList = matchSnapshot.docs.map((doc) => doc.data());
-    const matchString = JSON.stringify(matchList);
-    const blob = new Blob([matchString], { type: 'application/json' });
-    console.log(matchList);
-    //matchSnapshot.forEach((doc) => {
-    //  console.log(doc.id, " => ", doc.data());
-    //});
-    this.bigdummydataFile = new File([blob], 'dummydata.json', {
-      type: 'application/json',
-    });
+    connectFunctionsEmulator(functions, 'localhost', 5003);
+
+    const x = await fetch('https://5003-firebase-ai-pickle2-1753311192596.cluster-ux5mmlia3zhhask7riihruxydo.cloudworkstations.dev/ai-pickle2/us-central1/helloWorld', {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ data: {} })
+    })
+    .then(response => response.json())
+    .then(data => console.log(data.result))
+    .catch(error => console.error('Error:', error));
   }
 
   addToChatFieldEnter(event: KeyboardEvent) {
@@ -139,46 +112,25 @@ export class AppComponent implements OnInit {
     }
   }
 
+  
   async generateMaintask(): Promise<void> {
     try {
-      const file = this.bigdummydataFile;
-      const { response: generatedResponse/*, subtasks: generatedSubtasks*/ } =
-        await this.taskService.generateTask({
-          file,
-          prompt: this.myInput,
-          //prompt: `What does Aaron love?`,
-        });
+      const { response: generatedResponse } =
+      await fetch('https://5003-firebase-ai-pickle2-1753311192596.cluster-ux5mmlia3zhhask7riihruxydo.cloudworkstations.dev/ai-pickle2/us-central1/generateTask', {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ data: { prompt: this.myInput, uid: "u04" } })
+      })
+      .then(response => response.json())
+      .then(data => data.result)
+      .catch(error => console.error('Error:', error));
       document.getElementById('resp' + this.chatRespId)!.innerText = document
         .getElementById('resp' + this.chatRespId)
         ?.innerText.concat(' ' + generatedResponse)!;
-
-      /*const newTaskRef = this.taskService.createTaskRef();
-      const maintask: Task = {
-        id: newTaskRef.id,
-        title: generatedTitle,
-        completed: false,
-        owner: this.taskService.currentUser?.uid || this.taskService.localUid!,
-        createdTime: Timestamp.fromDate(new Date()),
-        priority: 'none',
-      };
-      const subtasks = generatedSubtasks?.map((generatedSubtask, i) => {
-        return {
-          id: this.taskService.createTaskRef().id,
-          title: generatedSubtask,
-          completed: false,
-          parentId: newTaskRef.id,
-          order: i,
-          owner: maintask.owner,
-          createdTime: maintask.createdTime,
-        };
-      });
-      this.generatedTask = { maintask, subtasks };*/
     } catch (error) {
-      this.handleError(error, 'Failed to generate main task.');
+      console.log(error, 'Failed to generate main task.');
     }
-  }
-
-  handleError(error: any, userMessage?: string, duration: number = 3000): void {
-    this.taskService.handleError(error, userMessage, duration);
   }
 }

@@ -94,7 +94,9 @@ const MODEL_CONFIG = {
     responseSchema: taskSchema,
   },
   systemInstruction: `You are a professional Jewish matchmaker. Analyze the JSON data and return data based off of keywords from the prompt.
-  For example, if the prompt is: "What does Aaron love?", the response should be: "Aaron loves basketball and Sushi."`,
+  For example, if the prompt is: "What does Aaron love?", the response should be: "Aaron loves basketball and Sushi."
+  If the prompt is asking how to improve their profile, the response should point out entries in the user's profile data that are empty or 0.`
+  //For example, if the prompt is: "I'm Blake. How can I improve my profile?", a response could mention that their Covid Vaccine entry is empty.`,
 };
 
 @Injectable({

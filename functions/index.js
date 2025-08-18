@@ -7,9 +7,18 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-const { setGlobalOptions } = require("firebase-functions/v2/options");
-const { onCall } = require("firebase-functions/v2/https");
-const logger = require("firebase-functions/logger");
+import * as logger from "firebase-functions/logger";
+import "@angular/compiler";
+import { onCall, onRequest } from "firebase-functions/v2/https";
+import { setGlobalOptions } from "firebase-functions/v2/options";
+import { inject, Injectable } from '@angular/core';
+import { getGenerativeModel, Schema } from "@angular/fire/ai";
+import { getAI, GoogleAIBackend } from '@angular/fire/ai';
+import { getApp, initializeApp } from 'firebase/app';
+import { collection, getDocs, getFirestore } from 'firebase/firestore';
+//import { environment } from '../environments/environments';
+
+//import { AI, getGenerativeModel, Schema } from "@angular/fire/ai";
 
 // For cost control, you can set the maximum number of containers that can be
 // running at the same time. This helps mitigate the impact of unexpected
@@ -26,32 +35,55 @@ setGlobalOptions({ maxInstances: 1 });
 // Create and deploy your first functions
 // https://firebase.google.com/docs/functions/get-started
 
-exports.helloWorld = onCall((request) => {
-  logger.info("helloWorld called", { uid: request.auth?.uid ?? null });
-  return { message: "Hello from Firebase!", nonce: Math.random() };
+export const helloWorld = onCall((request) => {
+    return "Hello World!";
 });
 
-/*exports.generateTask = onCall(async (file, prompt) => {
-  const { file, prompt } = input;
-  console.log(file);
-  if (!file && !prompt) {
+export const generateTask = onCall(async (request) => {
+  initializeApp({
+    apiKey: "AIzaSyBToTul3CFDKt3Ip9TTuEzgL_5-syLefSM",
+    authDomain: "ai-pickle2.firebaseapp.com",
+    projectId: "ai-pickle2",
+    storageBucket: "ai-pickle2.firebasestorage.app",
+    messagingSenderId: "515733221066",
+    appId: "1:515733221066:web:0d9454d36fc5163b14ce33"    
+  });
+  const matchSnapshot = await getDocs(
+    collection(getFirestore(getApp()), 'profiles')
+  );
+  const matchList = matchSnapshot.docs.map((doc) => doc.data());
+  const matchString = JSON.stringify(matchList);
+  const blob = new Blob([matchString], { type: 'application/json' });
+  const bigdummydataFile = new File([blob], 'dummydata.json', {
+    type: 'application/json',
+  });
+  
+  const experimentModel = getGenerativeModel(getAI(getApp(), { backend: new GoogleAIBackend() }), {
+    model: 'gemini-2.5-flash',
+    generationConfig: {
+      responseMimeType: 'application/json',
+      responseSchema: Schema.object({
+        properties: {
+          response: Schema.string()
+        }
+      })
+    },
+    systemInstruction: `You are a professional Jewish matchmaker. Analyze the JSON data and return data based off of keywords from the prompt.
+    If the prompt is asking how to improve their profile, the response should point out entries in the ${ request.data.uid } profile data that are empty or 0, as well as mention the firstName entry from the ${ request.data.uid } document in the profiles collection.`
+  });
+  if (!bigdummydataFile && !request.data.prompt) {
     return {
-      response: 'Please provide a prompt',
-      //subtasks: [],
+      response: 'Please provide a prompt'
     };
   }
 
-  //This is the JSON part
-  const imagePart = file ? await file.text() : '';
-
+  const imagePart = await bigdummydataFile.text();
   try {
-    const result = await this.experimentModel.generateContent(
-      [prompt, imagePart].filter(Boolean)
+    const result = await experimentModel.generateContent(
+      [request.data.prompt, imagePart].filter(Boolean)
     );
     const response = await result.response.text();
-    console.log(response);
     return JSON.parse(response);
   } catch (error) {
-    this.handleError(error, 'Failed to generate subtasks');
-    throw error;
-  }})*/
+    throw new Error("Failed to generate subtasks");
+  }});
