@@ -25,6 +25,7 @@ export class AppComponent implements OnInit {
   myInput: string = '';
   textStream: string = '';
   chatRespId: number = 0;
+  history: string[] = [];
 
   bigdummydataFile?: File;
 
@@ -114,6 +115,7 @@ export class AppComponent implements OnInit {
 
   
   async generateMaintask(): Promise<void> {
+    this.history.push(this.myInput);
     try {
       const { response: generatedResponse } =
       await fetch('https://5003-firebase-ai-pickle2-1753311192596.cluster-ux5mmlia3zhhask7riihruxydo.cloudworkstations.dev/ai-pickle2/us-central1/generateTask', {
@@ -121,7 +123,7 @@ export class AppComponent implements OnInit {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ data: { prompt: this.myInput, uid: "u04" } })
+        body: JSON.stringify({ data: { prompt: this.myInput, history: this.history, uid: "u03" } })
       })
       .then(response => response.json())
       .then(data => data.result)

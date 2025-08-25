@@ -15,7 +15,7 @@ import { inject, Injectable } from '@angular/core';
 import { getGenerativeModel, Schema } from "@angular/fire/ai";
 import { getAI, GoogleAIBackend } from '@angular/fire/ai';
 import { getApp, initializeApp } from 'firebase/app';
-import { collection, getDocs, getFirestore } from 'firebase/firestore';
+import { collection, getDocs, getFirestore, doc, updateDoc } from 'firebase/firestore';
 //import { environment } from '../environments/environments';
 
 //import { AI, getGenerativeModel, Schema } from "@angular/fire/ai";
@@ -69,7 +69,9 @@ export const generateTask = onCall(async (request) => {
       })
     },
     systemInstruction: `You are a professional Jewish matchmaker. Analyze the JSON data and return data based off of keywords from the prompt.
-    If the prompt is asking how to improve their profile, the response should point out entries in the ${ request.data.uid } profile data that are empty or 0, as well as mention the firstName entry from the ${ request.data.uid } document in the profiles collection.`
+    If the prompt is asking how to improve their profile, the response should only point out entries in the specific ${ request.data.uid } profile data that are empty or 0, as well as mention the profile's firstName.
+    You should treat ${ request.data.history } as message memory.
+    If the prompt asks you to change an entry in their profile to a new value, the response should be structured as such: "[<profile_entry_to_change>, <new_value>]", followed by saying that the change should have been made.`
   });
   if (!bigdummydataFile && !request.data.prompt) {
     return {
@@ -78,12 +80,43 @@ export const generateTask = onCall(async (request) => {
   }
 
   const imagePart = await bigdummydataFile.text();
-  try {
+  //try {
     const result = await experimentModel.generateContent(
       [request.data.prompt, imagePart].filter(Boolean)
     );
-    const response = await result.response.text();
+    let response = await result.response.text();
+    if (JSON.parse(response).response[0] == "[") {
+      console.log(JSON.parse(response).response.substring(
+        JSON.parse(response).response.indexOf("[") + 1,
+        JSON.parse(response).response.indexOf(",")
+      ));
+      const entry = JSON.parse(response).response.substring(
+        JSON.parse(response).response.indexOf("[") + 1,
+        JSON.parse(response).response.indexOf(",")
+      );
+      console.log(JSON.parse(response).response.substring(
+        JSON.parse(response).response.indexOf(",") + 1,
+        JSON.parse(response).response.indexOf("]")
+      ));
+      const value = JSON.parse(response).response.substring(
+        JSON.parse(response).response.indexOf(",") + 1,
+        JSON.parse(response).response.indexOf("]")
+      );
+      const profileRef = doc(getFirestore(getApp()), 'profiles', request.data.uid);
+      await updateDoc(profileRef, {
+        [entry.replaceAll('"', '')]: value.replaceAll('"', '')
+      });
+      console.log(response);
+      console.log(response.slice(response.indexOf("["), response.indexOf("]") + 2));
+      console.log(response[response.indexOf("]") + 2]);
+      response = response.replaceAll(response.slice(response.indexOf("["), response.indexOf("]") + 2), '');
+      if (response[response.indexOf(":") + 3] === " ")
+        response[response.indexOf(":") + 3] = '';
+      response[response.indexOf(":") + 3].toUpperCase();
+      console.log(response);
+      //response.response = response.response.slice(response.response.indexOf("]") + 1);
+    }
     return JSON.parse(response);
-  } catch (error) {
+  /*} catch (error) {
     throw new Error("Failed to generate subtasks");
-  }});
+  }*/});
