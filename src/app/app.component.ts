@@ -25,7 +25,7 @@ export class AppComponent implements OnInit {
   myInput: string = '';
   textStream: string = '';
   chatRespId: number = 0;
-  history: string[] = [];
+  first: boolean = true;
 
   bigdummydataFile?: File;
 
@@ -42,33 +42,44 @@ export class AppComponent implements OnInit {
   async ngAfterViewInit() {
     const functions = getFunctions(getApp(), 'us-central1');
     connectFunctionsEmulator(functions, 'localhost', 5003);
-
-    const x = await fetch('https://5003-firebase-ai-pickle2-1753311192596.cluster-ux5mmlia3zhhask7riihruxydo.cloudworkstations.dev/ai-pickle2/us-central1/helloWorld', {
+    fetch('https://5003-firebase-ai-pickle2-1753311192596.cluster-ux5mmlia3zhhask7riihruxydo.cloudworkstations.dev/ai-pickle2/us-central1/helloWorld', {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ data: {} })
+      body: JSON.stringify({ data: { uid: "u01" } })
     })
     .then(response => response.json())
-    .then(data => console.log(data.result))
+    .then(data => {
+      data.result.forEach((message: { text: string; sender: string; }) => {
+        this.addToChatField(message.text, message.sender)
+      })
+  })
     .catch(error => console.error('Error:', error));
+}
+
+  addToChatFieldButton() {
+    this.addToChatField(this.myInput, "user");
+    this.myInput = '';
   }
 
   addToChatFieldEnter(event: KeyboardEvent) {
     if (event.key === 'Enter') {
-      this.addToChatField();
+      this.addToChatField(this.myInput, "user");
       this.myInput = '';
     }
   }
 
-  addToChatField() {
-    if (this.myInput) {
+  addToChatField(text: string, sender: string) {
+    if (text) {
       const chatMsgBox = document.createElement('div');
       chatMsgBox.style.width = '50%';
       chatMsgBox.style.margin = 'auto';
+      if (sender === 'user')
+        chatMsgBox.style.marginRight = '0.85rem';
+      else
+        chatMsgBox.style.marginLeft = '0.85rem';
       chatMsgBox.style.marginBottom = '0.5rem';
-      chatMsgBox.style.marginRight = '0.85rem';
       chatMsgBox.style.paddingLeft = '0.5rem';
       chatMsgBox.style.paddingRight = '0.5rem';
       chatMsgBox.style.lineHeight = '1.35';
@@ -77,29 +88,9 @@ export class AppComponent implements OnInit {
       const chatMsg = document.createElement('p');
       chatMsg.style.textOverflow = 'ellipsis';
       chatMsg.style.overflow = 'hidden';
-      chatMsg.innerText = this.myInput;
+      chatMsg.innerText = text;
       chatMsgBox.appendChild(chatMsg);
       document.getElementById('chatBox')?.appendChild(chatMsgBox);
-      setTimeout(() => {
-        const chatMsgResp = document.createElement('div');
-        chatMsgResp.style.width = '50%';
-        chatMsgResp.style.margin = 'auto';
-        chatMsgResp.style.marginBottom = '0.5rem';
-        chatMsgResp.style.marginLeft = '0.85rem';
-        chatMsgResp.style.paddingLeft = '0.5rem';
-        chatMsgResp.style.paddingRight = '0.5rem';
-        chatMsgResp.style.lineHeight = '1.35';
-        chatMsgResp.style.backgroundColor = 'var(--color-gray-500)';
-        chatMsgResp.style.borderRadius = 'var(--radius-md)';
-        const respMsg = document.createElement('p');
-        respMsg.style.textOverflow = 'ellipsis';
-        respMsg.style.overflow = 'hidden';
-        this.chatRespId++;
-        respMsg.id = 'resp' + this.chatRespId;
-        respMsg.innerText = this.textStream;
-        chatMsgResp.appendChild(respMsg);
-        document.getElementById('chatBox')?.appendChild(chatMsgResp);
-      }, 250);
     }
   }
 
@@ -112,10 +103,8 @@ export class AppComponent implements OnInit {
       await this.generateMaintask();
     }
   }
-
   
   async generateMaintask(): Promise<void> {
-    this.history.push(this.myInput);
     try {
       const { response: generatedResponse } =
       await fetch('https://5003-firebase-ai-pickle2-1753311192596.cluster-ux5mmlia3zhhask7riihruxydo.cloudworkstations.dev/ai-pickle2/us-central1/generateTask', {
@@ -123,14 +112,12 @@ export class AppComponent implements OnInit {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ data: { prompt: this.myInput, history: this.history, uid: "u03" } })
+        body: JSON.stringify({ data: { prompt: this.myInput, uid: "u01" } })
       })
       .then(response => response.json())
       .then(data => data.result)
       .catch(error => console.error('Error:', error));
-      document.getElementById('resp' + this.chatRespId)!.innerText = document
-        .getElementById('resp' + this.chatRespId)
-        ?.innerText.concat(' ' + generatedResponse)!;
+      this.addToChatField(generatedResponse, "ai");
     } catch (error) {
       console.log(error, 'Failed to generate main task.');
     }

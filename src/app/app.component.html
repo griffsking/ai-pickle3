@@ -4,7 +4,7 @@
     <div style="display: flex; height: 100%">
       <input class="inputField rounded-md" placeholder="Ask any question..." [(ngModel)]="myInput"
       (keydown)="onGoClickEnter($event); addToChatFieldEnter($event)"/>
-      <div class="sendButton" title="Ask Gemini" (click)="onGoClick(); addToChatField(); myInput=''"><i class="fa-solid fa-paper-plane" style="color: #ffffff;"></i></div>
+      <div class="sendButton" title="Ask Gemini" (click)="onGoClick(); addToChatFieldButton()"><i class="fa-solid fa-paper-plane" style="color: #ffffff;"></i></div>
     </div>
   </div>
 </div>
