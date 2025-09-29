@@ -54,16 +54,22 @@ export class AppComponent implements OnInit {
   }
 
   async ngAfterViewInit() {
-    const auth = getAuth();
-    if (!auth.currentUser) {
-      await signInAnonymously(auth);
-    }
-    const helloWorld = httpsCallable(getFunctionsInstanceLazy(), 'helloWorld');
-    const hw = await helloWorld({ uid: 'u01' });
-    const hwMessages = Array.isArray(hw.data)
-      ? hw.data
-      : (hw.data as any)?.result || [];
-    hwMessages.forEach((m: any) => this.addToChatField(m.text, m.sender));
+    const functions = getFunctions(getApp(), 'us-central1');
+    connectFunctionsEmulator(functions, 'localhost', 5003);
+    fetch('https://5003-firebase-ai-pickle2-1753311192596.cluster-ux5mmlia3zhhask7riihruxydo.cloudworkstations.dev/ai-pickle2/us-central1/helloWorld', {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ data: { uid: "u01" } })
+    })
+    .then(response => response.json())
+    .then(data => {
+      data.result.forEach((message: { text: string; sender: string; }) => {
+        this.addToChatField(message.text, message.sender)
+      })
+  })
+    .catch(error => console.error('Error:', error));
   }
 
   addToChatFieldButton() {
@@ -112,17 +118,21 @@ export class AppComponent implements OnInit {
 
   async generateMaintask(): Promise<void> {
     try {
-      const generateTask = httpsCallable(
-        getFunctionsInstanceLazy(),
-        'generateTask'
-      );
-      const res: any = await generateTask({ prompt: this.myInput, uid: 'u01' });
-      const generatedResponse = res?.data?.response ?? res?.data ?? '';
-      this.addToChatField(generatedResponse, 'ai');
-      if (!generatedResponse) {
-        console.error('Empty response from generateTask', res);
-        return;
-      }
+      //{ response: generatedResponse }
+      const resp =
+      await fetch('https://5003-firebase-ai-pickle2-1753311192596.cluster-ux5mmlia3zhhask7riihruxydo.cloudworkstations.dev/ai-pickle2/us-central1/generateTask', {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ data: { prompt: this.myInput, uid: "u01" } })
+      });
+      let something = await resp.json();
+      console.log(something);
+      //.then(response => response.json())
+      //.then(data => data.result)
+      //.catch(error => console.error('Error:', error));
+      //this.addToChatField(generatedResponse, "ai");
     } catch (error) {
       console.log(error, 'Failed to generate main task.');
     }

@@ -32,7 +32,7 @@ import {
   initializeApp as initAdmin,
   getApps as getAdminApps,
 } from "firebase-admin/app";
-import { getFirestore as getAdminFirestore } from "firebase-admin/firestore";
+import { firebaseConfig } from "firebase-functions/v1";
 //import { environment } from '../environments/environments';
 
 //import { AI, getGenerativeModel, Schema } from "@angular/fire/ai";
@@ -60,8 +60,9 @@ initializeApp({
 if (!getAdminApps().length) {
   initAdmin();
 }
-
-const updateDocumentTool = {
+//updateDocumentTool
+const tools = [
+  {
   functionDeclarations: [
     {
       name: "updateDocument",
@@ -77,29 +78,26 @@ const updateDocumentTool = {
       },
     },
   ],
-};
+}];
 
-const experimentModel = getGenerativeModel(
-  getAI(getApp(), { backend: new GoogleAIBackend() }),
-  {
-    model: "gemini-2.5-flash",
-    /*generationConfig: {
-    responseMimeType: 'application/json',
-    responseSchema: Schema.object({
-      properties: {
-        response: Schema.string()
+let experimentModel;
+
+function getModel() {
+  if (!experimentModel) {
+    experimentModel = getGenerativeModel(
+      getAI(getApp(), { backend: new GoogleAIBackend() }),
+      {
+        model: "gemini-2.5-flash",
+        tools,
+        toolConfig: { functionCallingConfig: { mode: "AUTO" } }, // explicit
+        systemInstruction: `You are a professional Jewish matchmaker. Analyze the JSON data and return data based off of keywords from the prompt.
+      If the prompt asks you to change an entry in their profile to a new value, updateDocumentTool should be used, followed by saying that the change should have been made.`,
+      //If the prompt is asking how to improve their profile, the response should only point out entries in that specific user's profile data that are empty or 0, as well as mention the profile's firstName.
       }
-    })
-  },*/
-    tools: [updateDocumentTool],
-    toolConfig: { functionCallingConfig: { mode: "AUTO" } }, // explicit
-    systemInstruction: `You are a professional Jewish matchmaker. Analyze the JSON data and return data based off of keywords from the prompt.
-  If the prompt is asking how to improve their profile, the response should only point out entries in that specific user's profile data that are empty or 0, as well as mention the profile's firstName.
-  If the prompt asks you to change an entry in their profile to a new value, updateDocumentTool should be used, followed by saying that the change should have been made.`,
-    //If the prompt asks you to change an entry in their profile to a new value, the response should be structured as such: "[<profile_entry_to_change>, <new_value>]", followed by saying that the change should have been made.`
-    //If the prompt is asking how to improve their profile, the response should only point out entries in the specific ${ request.data.uid } profile data that are empty or 0, as well as mention the profile's firstName.
+    );
   }
-);
+  return experimentModel;
+}
 
 // Create and deploy your first functions
 // https://firebase.google.com/docs/functions/get-started
@@ -121,6 +119,7 @@ export const helloWorld = onCall(async (request) => {
 });
 
 export const generateTask = onCall(async (request) => {
+  const model = getModel();
   const chatRef = doc(getFirestore(getApp()), "chats", request.data.uid);
   const chatSnap = await getDoc(chatRef);
 
@@ -142,10 +141,15 @@ export const generateTask = onCall(async (request) => {
 
   const imagePart = await bigdummydataFile.text();
   try {
-    const result = await experimentModel.generateContent(
+    const size = new TextEncoder().encode(JSON.stringify([request.data.prompt, imagePart].filter(Boolean))).length;
+    const kiloBytes = size / 1024;
+    const megaBytes = kiloBytes / 1024;
+    logger.info("kiloBytes: " + kiloBytes);
+    logger.info("megaBytes: " + megaBytes);
+    const result = await model.generateContent(
       [request.data.prompt, imagePart].filter(Boolean)
     );
-
+    logger.info("is it getting to this part?");
     // Debug: log tool call if present to ensure tools wiring is correct
     try {
       const candidate = result?.response?.candidates?.[0];
@@ -157,7 +161,6 @@ export const generateTask = onCall(async (request) => {
     } catch (e) {
       logger.warn("Unable to inspect tool call", e);
     }
-
     // Execute tool call if present and return model-complete reply
     const candidate = result?.response?.candidates?.[0];
     const parts = candidate?.content?.parts || [];
@@ -169,7 +172,8 @@ export const generateTask = onCall(async (request) => {
           ...args,
           user: request.data.uid,
         });
-        const followup = await experimentModel.generateContent([
+        logger.info("3//////////////////////////////");
+        const followup = await model.generateContent([
           {
             functionResponse: { name: "updateDocument", response: toolResult },
           },
