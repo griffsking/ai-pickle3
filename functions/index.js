@@ -33,6 +33,7 @@ import {
   getApps as getAdminApps,
 } from "firebase-admin/app";
 import { firebaseConfig } from "firebase-functions/v1";
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 //import { environment } from '../environments/environments';
 
 //import { AI, getGenerativeModel, Schema } from "@angular/fire/ai";
@@ -87,12 +88,11 @@ function getModel() {
     experimentModel = getGenerativeModel(
       getAI(getApp(), { backend: new GoogleAIBackend() }),
       {
-        model: "gemini-2.5-flash",
+        model: "gemini-2.5-flash-lite",
         tools,
-        toolConfig: { functionCallingConfig: { mode: "AUTO" } }, // explicit
         systemInstruction: `You are a professional Jewish matchmaker. Analyze the JSON data and return data based off of keywords from the prompt.
-      If the prompt asks you to change an entry in their profile to a new value, updateDocumentTool should be used, followed by saying that the change should have been made.`,
-      //If the prompt is asking how to improve their profile, the response should only point out entries in that specific user's profile data that are empty or 0, as well as mention the profile's firstName.
+      If the prompt asks you to change an entry in their profile to a new value, updateDocument should be used, followed by saying that the change should have been made.
+      If the prompt is asking how to improve their profile, the response should only point out one or two entries in that specific user's profile data that are empty or 0, as well as mention the profile's firstName.`
       }
     );
   }
@@ -106,11 +106,18 @@ export const helloWorld = onCall(async (request) => {
   const chatRef = await getDocs(
     query(
       collection(
-        doc(collection(getFirestore(getApp()), "chats"), "u01"),
+        doc(collection(getFirestore(getApp()), "chats"), request.data.uid),
         "messages"
       )
     )
   );
+
+  //Use this to copy a sample uid to anon auth
+  /*const profilesRef = doc(getFirestore(getApp()), "settings", "u01");
+  const profilesRef2 = doc(getFirestore(getApp()), "settings", request.data.uid);
+  const profilesSnap = await getDoc(profilesRef);
+  await setDoc(profilesRef2, profilesSnap.data());*/
+
   let messages = [];
   chatRef.forEach((message) => {
     messages.push(message.data());
@@ -122,7 +129,9 @@ export const generateTask = onCall(async (request) => {
   const model = getModel();
   const chatRef = doc(getFirestore(getApp()), "chats", request.data.uid);
   const chatSnap = await getDoc(chatRef);
-
+  const profileRef = doc(getFirestore(getApp()), "profiles", request.data.uid);
+  const profileSnap = await getDoc(profileRef);
+  logger.info(profileSnap.data().firstName);
   const matchSnapshot = await getDocs(
     collection(getFirestore(getApp()), "profiles")
   );
@@ -141,13 +150,19 @@ export const generateTask = onCall(async (request) => {
 
   const imagePart = await bigdummydataFile.text();
   try {
-    const size = new TextEncoder().encode(JSON.stringify([request.data.prompt, imagePart].filter(Boolean))).length;
-    const kiloBytes = size / 1024;
-    const megaBytes = kiloBytes / 1024;
-    logger.info("kiloBytes: " + kiloBytes);
-    logger.info("megaBytes: " + megaBytes);
+    logger.info("both: " + [request.data.prompt, imagePart]);
+    //The input and the network logs are the same
+    // for successes and fails.
+    
+    logger.info(request.data.prompt);
+    request.data.prompt = request.data.prompt.concat(" My uid is " + request.data.uid + ".");
+    logger.info(request.data.prompt);
+    //What is the best way of letting the
+    //model know who the user making the request is?
+    //Why is this returning result: null now?
+    //The server seems to be refusing requests now???
     const result = await model.generateContent(
-      [request.data.prompt, imagePart].filter(Boolean)
+      [request.data.prompt, imagePart]
     );
     logger.info("is it getting to this part?");
     // Debug: log tool call if present to ensure tools wiring is correct
@@ -181,7 +196,7 @@ export const generateTask = onCall(async (request) => {
         const finalText = await followup.response.text();
         await addDoc(
           collection(
-            doc(collection(getFirestore(getApp()), "chats"), "u01"),
+            doc(collection(getFirestore(getApp()), "chats"), request.data.uid),
             "messages"
           ),
           { sender: "ai", text: finalText, timestamp: Timestamp.now() }
@@ -239,7 +254,7 @@ export const generateTask = onCall(async (request) => {
     });*/
     await addDoc(
       collection(
-        doc(collection(getFirestore(getApp()), "chats"), "u01"),
+        doc(collection(getFirestore(getApp()), "chats"), request.data.uid),
         "messages"
       ),
       {
@@ -250,7 +265,7 @@ export const generateTask = onCall(async (request) => {
     );
     await addDoc(
       collection(
-        doc(collection(getFirestore(getApp()), "chats"), "u01"),
+        doc(collection(getFirestore(getApp()), "chats"), request.data.uid),
         "messages"
       ),
       {
@@ -261,8 +276,7 @@ export const generateTask = onCall(async (request) => {
     );
     return { response: response };
   } catch (error) {
-    logger.error("generateTask failed", error);
-    throw new Error("GENERATION_FAILED");
+    logger.error("generateContent didn't work", error);
   }
 });
 

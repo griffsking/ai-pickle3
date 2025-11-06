@@ -22,3 +22,115 @@
 .sendButton:hover {
   background: #d2e6ff;
 }
+
+.messageBox {
+  width: 50%;
+  margin: auto;
+  margin-bottom: 0.5rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  line-height: 1.35;
+  background: var(--color-gray-500);
+  border-radius: var(--radius-md);
+  animation-name: openmessage;
+  animation-duration: 0.25s;
+  animation-fill-mode: forwards;
+}
+
+.loadingcont {
+  height: 20px;
+  width: 50px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+  justify-content: center;
+  display: flex;
+  align-items: center;
+  
+  .dotcont {
+    width: 12px;
+    justify-content: center;
+    display: flex;
+    align-items: center;
+  }
+}
+
+.dot {
+  border-radius: 50%;
+  background: gray;
+  width: 8px;
+  height: 8px;
+  animation-name: dot;
+  animation-direction: forward;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in;
+  animation-duration: 1s;
+}
+
+.dot2 {
+  animation-name: dot2;
+}
+
+.dot3 {
+  animation-name: dot3;
+}
+
+@keyframes dot {
+  0% {
+    width: 8px;
+    height: 8px;
+    background: gray;
+  }
+  15% {
+    width: 11px;
+    height: 11px;
+    background: rgb(155, 155, 155);
+  }
+  30% {
+    width: 8px;
+    height: 8px;
+    background: gray;
+  }
+}
+@keyframes dot2 {
+  7.5% {
+    width: 8px;
+    height: 8px;
+    background: gray;
+  }
+  22.5% {
+    width: 11px;
+    height: 11px;
+    background: rgb(155, 155, 155);
+  }
+  37.5% {
+    width: 8px;
+    height: 8px;
+    background: gray;
+  }
+}
+@keyframes dot3 {
+  15% {
+    width: 8px;
+    height: 8px;
+    background: gray;
+  }
+  30% {
+    width: 11px;
+    height: 11px;
+    background: rgb(155, 155, 155);
+  }
+  45% {
+    width: 8px;
+    height: 8px;
+    background: gray;
+  }
+}
+
+@keyframes openmessage {
+  from {
+    width: 0
+  }
+  to {
+      width: "50%"
+  }
+}
