@@ -12,8 +12,7 @@ import "@angular/compiler";
 import { onCall, onRequest } from "firebase-functions/v2/https";
 import { setGlobalOptions } from "firebase-functions/v2/options";
 import { inject, Injectable } from "@angular/core";
-import { getGenerativeModel, Schema } from "@angular/fire/ai";
-import { getAI, GoogleAIBackend } from "@angular/fire/ai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getApp, initializeApp } from "firebase/app";
 import {
   collection,
@@ -33,7 +32,7 @@ import {
   getApps as getAdminApps,
 } from "firebase-admin/app";
 import { firebaseConfig } from "firebase-functions/v1";
-import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
 //import { environment } from '../environments/environments';
 
 //import { AI, getGenerativeModel, Schema } from "@angular/fire/ai";
@@ -64,37 +63,43 @@ if (!getAdminApps().length) {
 //updateDocumentTool
 const tools = [
   {
-  functionDeclarations: [
-    {
-      name: "updateDocument",
-      description: "Update a Firestore profile field for the user.",
-      parameters: {
-        type: "OBJECT",
-        properties: {
-          user: { type: "STRING", description: "UID of the user." },
-          entry: { type: "STRING", description: "Field path to update." },
-          value: { type: "STRING", description: "New value." },
+    functionDeclarations: [
+      {
+        name: "updateDocument",
+        description: "Update a Firestore profile field for the user.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            user: { type: "STRING", description: "UID of the user." },
+            entry: { type: "STRING", description: "Field path to update." },
+            value: { type: "STRING", description: "New value." },
+          },
+          required: ["user", "entry", "value"],
         },
-        required: ["user", "entry", "value"],
       },
-    },
-  ],
-}];
+    ],
+  },
+];
 
 let experimentModel;
 
 function getModel() {
   if (!experimentModel) {
-    experimentModel = getGenerativeModel(
-      getAI(getApp(), { backend: new GoogleAIBackend() }),
-      {
-        model: "gemini-2.5-flash-lite",
-        tools,
-        systemInstruction: `You are a professional Jewish matchmaker. Analyze the JSON data and return data based off of keywords from the prompt.
-      If the prompt asks you to change an entry in their profile to a new value, updateDocument should be used, followed by saying that the change should have been made.
-      If the prompt is asking how to improve their profile, the response should only point out one or two entries in that specific user's profile data that are empty or 0, as well as mention the profile's firstName.`
-      }
-    );
+    const apiKey = "INSERT KEY HERE";
+    if (!apiKey) {
+      logger.error(
+        "Gemini API key missing. Set GOOGLE_API_KEY in env or secrets."
+      );
+      throw new Error("MISSING_API_KEY");
+    }
+    const genAI = new GoogleGenerativeAI(apiKey);
+    experimentModel = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash-lite",
+      tools,
+      systemInstruction: `You are a professional Jewish matchmaker. Analyze the JSON data and return data based off of keywords from the prompt.
+    If the prompt asks you to change an entry in their profile to a new value, updateDocument should be used, followed by saying that the change should have been made.
+    If the prompt is asking how to improve their profile, the response should only point out one or two entries in that specific user's profile data that are empty or 0, as well as mention the profile's firstName.`,
+    });
   }
   return experimentModel;
 }
@@ -126,55 +131,91 @@ export const helloWorld = onCall(async (request) => {
 });
 
 export const generateTask = onCall(async (request) => {
-  const model = getModel();
-  const chatRef = doc(getFirestore(getApp()), "chats", request.data.uid);
-  const chatSnap = await getDoc(chatRef);
-  const profileRef = doc(getFirestore(getApp()), "profiles", request.data.uid);
-  const profileSnap = await getDoc(profileRef);
-  logger.info(profileSnap.data().firstName);
-  const matchSnapshot = await getDocs(
-    collection(getFirestore(getApp()), "profiles")
-  );
-  const matchList = matchSnapshot.docs.map((doc) => doc.data());
-  const matchString = JSON.stringify(matchList);
-  const blob = new Blob([matchString], { type: "application/json" });
-  const bigdummydataFile = new File([blob], "dummydata.json", {
-    type: "application/json",
+  logger.info("generateTask:start", {
+    node: process.version,
+    hasFile: typeof File !== "undefined",
+    hasBlob: typeof Blob !== "undefined",
+    uid: request?.data?.uid || null,
+    hasPrompt: !!request?.data?.prompt,
   });
 
-  if (!bigdummydataFile && !request.data.prompt) {
-    return {
-      response: "Please provide a prompt",
-    };
+  const model = getModel();
+
+  const chatRef = doc(getFirestore(getApp()), "chats", request.data.uid);
+  let chatSnap;
+  try {
+    chatSnap = await getDoc(chatRef);
+    logger.info("generateTask:chatSnap", { exists: chatSnap.exists() });
+  } catch (e) {
+    logger.error("generateTask:chatSnap:error", e);
   }
 
-  const imagePart = await bigdummydataFile.text();
+  const profileRef = doc(getFirestore(getApp()), "profiles", request.data.uid);
+  let profileSnap;
   try {
-    logger.info("both: " + [request.data.prompt, imagePart]);
-    //The input and the network logs are the same
-    // for successes and fails.
-    
-    logger.info(request.data.prompt);
-    request.data.prompt = request.data.prompt.concat(" My uid is " + request.data.uid + ".");
-    logger.info(request.data.prompt);
-    //What is the best way of letting the
-    //model know who the user making the request is?
-    //Why is this returning result: null now?
-    //The server seems to be refusing requests now???
-    const result = await model.generateContent(
-      [request.data.prompt, imagePart]
+    profileSnap = await getDoc(profileRef);
+    logger.info("generateTask:profileSnap", { exists: profileSnap.exists() });
+    if (profileSnap.exists()) {
+      const fn = profileSnap.data()?.firstName || null;
+      logger.info("generateTask:firstName", { firstName: fn });
+    }
+  } catch (e) {
+    logger.error("generateTask:profileSnap:error", e);
+  }
+
+  let matchSnapshot;
+  try {
+    matchSnapshot = await getDocs(
+      collection(getFirestore(getApp()), "profiles")
     );
-    logger.info("is it getting to this part?");
-    // Debug: log tool call if present to ensure tools wiring is correct
+  } catch (e) {
+    logger.error("generateTask:matchSnapshot:error", e);
+  }
+  const matchList = (matchSnapshot?.docs || []).map((d) => d.data());
+  logger.info("generateTask:matchList", { count: matchList.length });
+
+  const matchString = JSON.stringify(matchList);
+  if (!matchString && !request.data?.prompt) {
+    return { response: "Please provide a prompt" };
+  }
+  const imagePart = matchString; // pass JSON directly
+
+  logger.info("generateTask:inputs", {
+    promptLen: (request.data?.prompt || "").length,
+    jsonLen: imagePart.length,
+  });
+  const originalPrompt = request.data?.prompt || "";
+  const effectivePrompt =
+    originalPrompt + " My uid is " + (request.data?.uid || "");
+  logger.info("generateTask:effectivePrompt", { len: effectivePrompt.length });
+
+  try {
+    let result;
+    try {
+      result = await model.generateContent({
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: effectivePrompt }, { text: imagePart }],
+          },
+        ],
+        tools,
+      });
+      logger.info("generateTask:model:ok");
+    } catch (e) {
+      logger.error("generateTask:model:error", e);
+      return { error: "MODEL_ERROR" };
+    }
+
     try {
       const candidate = result?.response?.candidates?.[0];
       const parts = candidate?.content?.parts || [];
-      const toolPart = parts.find((p) => p.functionCall);
-      if (toolPart && toolPart.functionCall) {
-        logger.info("Tool call detected", toolPart.functionCall);
-      }
+      logger.info("generateTask:model:candidate", {
+        parts: parts.length,
+        hasFunctionCall: !!parts.find((p) => p.functionCall),
+      });
     } catch (e) {
-      logger.warn("Unable to inspect tool call", e);
+      logger.warn("generateTask:model:candidate:inspect:error", e);
     }
     // Execute tool call if present and return model-complete reply
     const candidate = result?.response?.candidates?.[0];
@@ -182,101 +223,95 @@ export const generateTask = onCall(async (request) => {
     const toolPart = parts.find((p) => p.functionCall);
     if (toolPart && toolPart.functionCall) {
       const { name, args } = toolPart.functionCall;
+      logger.info("generateTask:toolCall", { name, args });
       if (name === "updateDocument") {
         const toolResult = await updateDocument({
           ...args,
           user: request.data.uid,
         });
         logger.info("3//////////////////////////////");
-        const followup = await model.generateContent([
-          {
-            functionResponse: { name: "updateDocument", response: toolResult },
-          },
-        ]);
-        const finalText = await followup.response.text();
-        await addDoc(
-          collection(
-            doc(collection(getFirestore(getApp()), "chats"), request.data.uid),
-            "messages"
-          ),
-          { sender: "ai", text: finalText, timestamp: Timestamp.now() }
-        );
+        let followup, finalText;
+        try {
+          followup = await model.generateContent({
+            contents: [
+              {
+                role: "tool",
+                parts: [
+                  {
+                    functionResponse: {
+                      name: "updateDocument",
+                      response: toolResult,
+                    },
+                  },
+                ],
+              },
+            ],
+          });
+          finalText = await followup.response.text();
+          logger.info("generateTask:followup:ok", {
+            textLen: finalText.length,
+          });
+        } catch (e) {
+          logger.error("generateTask:followup:error", e);
+          finalText = "Profile updated.";
+        }
+        try {
+          await addDoc(
+            collection(
+              doc(
+                collection(getFirestore(getApp()), "chats"),
+                request.data.uid
+              ),
+              "messages"
+            ),
+            { sender: "ai", text: finalText, timestamp: Timestamp.now() }
+          );
+          logger.info("generateTask:write:ai:ok");
+        } catch (e) {
+          logger.error("generateTask:write:ai:error", e);
+        }
         return { response: finalText };
       }
     }
 
-    let response = await result.response.text();
-    /*if (JSON.parse(response).response[0] == "[") {
-      console.log(JSON.parse(response).response.substring(
-        JSON.parse(response).response.indexOf("[") + 1,
-        JSON.parse(response).response.indexOf(",")
-      ));
-      const entry = JSON.parse(response).response.substring(
-        JSON.parse(response).response.indexOf("[") + 1,
-        JSON.parse(response).response.indexOf(",")
+    let response;
+    try {
+      response = await result.response.text();
+      logger.info("generateTask:response:text", { textLen: response.length });
+    } catch (e) {
+      logger.error("generateTask:response:text:error", e);
+      response = "";
+    }
+
+    try {
+      await addDoc(
+        collection(
+          doc(collection(getFirestore(getApp()), "chats"), request.data.uid),
+          "messages"
+        ),
+        { sender: "user", text: originalPrompt, timestamp: Timestamp.now() }
       );
-      console.log(JSON.parse(response).response.substring(
-        JSON.parse(response).response.indexOf(",") + 1,
-        JSON.parse(response).response.indexOf("]")
-      ));
-      const value = JSON.parse(response).response.substring(
-        JSON.parse(response).response.indexOf(",") + 1,
-        JSON.parse(response).response.indexOf("]")
+      logger.info("generateTask:write:user:ok");
+    } catch (e) {
+      logger.error("generateTask:write:user:error", e);
+    }
+
+    try {
+      await addDoc(
+        collection(
+          doc(collection(getFirestore(getApp()), "chats"), request.data.uid),
+          "messages"
+        ),
+        { sender: "ai", text: response, timestamp: Timestamp.now() }
       );
-      const profileRef = doc(getFirestore(getApp()), 'profiles', request.data.uid);
-      await updateDoc(profileRef, {
-        [entry.replaceAll('"', '')]: value.replaceAll('"', '')
-      });
-      console.log(response);
-      console.log(response.slice(response.indexOf("["), response.indexOf("]") + 2));
-      console.log(response[response.indexOf("]") + 2]);
-      response = response.replaceAll(response.slice(response.indexOf("["), response.indexOf("]") + 2), '');
-      if (response[response.indexOf(":") + 3] === " ")
-        response[response.indexOf(":") + 3] = '';
-      response[response.indexOf(":") + 3].toUpperCase();
-      console.log(response);
-      //response.response = response.response.slice(response.response.indexOf("]") + 1);
-    }*/
-    /*let newMessageHistory = chatSnap.data().messagehistory;
-    newMessageHistory.push({
-      sender: "user",
-      text: request.data.prompt,
-      timestamp: Timestamp.now()
-    });
-    newMessageHistory.push({
-      sender: "ai",
-      text: response,
-      //text: JSON.parse(response).response,
-      timestamp: Timestamp.now()
-    });
-    await updateDoc(doc(getFirestore(getApp()), 'chats', 'u01'), {
-      messagehistory: newMessageHistory
-    });*/
-    await addDoc(
-      collection(
-        doc(collection(getFirestore(getApp()), "chats"), request.data.uid),
-        "messages"
-      ),
-      {
-        sender: "user",
-        text: request.data.prompt,
-        timestamp: Timestamp.now(),
-      }
-    );
-    await addDoc(
-      collection(
-        doc(collection(getFirestore(getApp()), "chats"), request.data.uid),
-        "messages"
-      ),
-      {
-        sender: "ai",
-        text: response,
-        timestamp: Timestamp.now(),
-      }
-    );
+      logger.info("generateTask:write:ai:ok");
+    } catch (e) {
+      logger.error("generateTask:write:ai:error", e);
+    }
     return { response: response };
   } catch (error) {
-    logger.error("generateContent didn't work", error);
+    logger.error("generateTask:UNHANDLED", error);
+    return { error: "UNHANDLED", message: String(error?.message || error) };
   }
 });
 

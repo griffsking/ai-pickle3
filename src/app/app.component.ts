@@ -64,20 +64,20 @@ export class AppComponent implements OnInit {
     });
     onAuthStateChanged(getAuth(), (user) => {
       if (user) {
-        fetch('https://5003-firebase-ai-pickle2-1753311192596.cluster-ux5mmlia3zhhask7riihruxydo.cloudworkstations.dev/ai-pickle2/us-central1/helloWorld', {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ data: { uid: user.uid }})
-        })
-        .then(response => response.json())
-        .then(data => {
-          data.result.forEach((message: { text: string; sender: string; }) => {
-            this.addToChatField(message.text, message.sender)
-          });
-          document.getElementById("chatBox")?.scrollTo(0, document.getElementById("chatBox")?.scrollHeight!)
-      }).catch(error => console.error('Error:', error));
+        const functions = getFunctionsInstanceLazy();
+        const helloWorld = httpsCallable(functions, 'helloWorld');
+        helloWorld({ uid: user.uid })
+          .then((resp: any) => {
+            const data = resp.data;
+            console.log(data);
+            data.forEach((message: { text: string; sender: string }) => {
+              this.addToChatField(message.text, message.sender);
+            });
+            document
+              .getElementById('chatBox')
+              ?.scrollTo(0, document.getElementById('chatBox')?.scrollHeight!);
+          })
+          .catch((error: any) => console.error('Error:', error));
       }
     });
   }
@@ -99,7 +99,7 @@ export class AppComponent implements OnInit {
   addToChatField(text: string, sender: string) {
     if (text) {
       const chatMsgBox = document.createElement('div');
-      chatMsgBox.className = "messageBox";
+      chatMsgBox.className = 'messageBox';
       if (sender === 'user') chatMsgBox.style.marginRight = '0.85rem';
       else chatMsgBox.style.marginLeft = '0.85rem';
       const chatMsg = document.createElement('p');
@@ -122,28 +122,30 @@ export class AppComponent implements OnInit {
   }
 
   async generateMaintask(): Promise<void> {
-    document.getElementById("chatBox")?.scrollTo(0, document.getElementById("chatBox")?.scrollHeight!)
+    document
+      .getElementById('chatBox')
+      ?.scrollTo(0, document.getElementById('chatBox')?.scrollHeight!);
     const chatMsgBox = document.createElement('div');
-    chatMsgBox.className = "messageBox";
-    chatMsgBox.style.marginLeft = '0.85rem'
+    chatMsgBox.className = 'messageBox';
+    chatMsgBox.style.marginLeft = '0.85rem';
     const chatMsgBoxLoadingCont = document.createElement('div');
-    chatMsgBoxLoadingCont.className = "loadingcont";
+    chatMsgBoxLoadingCont.className = 'loadingcont';
     const chatMsgBoxDotCont1 = document.createElement('div');
-    chatMsgBoxDotCont1.className = "dotcont";
+    chatMsgBoxDotCont1.className = 'dotcont';
     const chatMsgBoxDot1 = document.createElement('div');
-    chatMsgBoxDot1.className = "dot";
+    chatMsgBoxDot1.className = 'dot';
     chatMsgBoxDotCont1.appendChild(chatMsgBoxDot1);
     const chatMsgBoxDotCont2 = document.createElement('div');
-    chatMsgBoxDotCont2.classList.add("dotcont");
+    chatMsgBoxDotCont2.classList.add('dotcont');
     const chatMsgBoxDot2 = document.createElement('div');
-    chatMsgBoxDot2.classList.add("dot");
-    chatMsgBoxDot2.classList.add("dot2");
+    chatMsgBoxDot2.classList.add('dot');
+    chatMsgBoxDot2.classList.add('dot2');
     chatMsgBoxDotCont2.appendChild(chatMsgBoxDot2);
     const chatMsgBoxDotCont3 = document.createElement('div');
-    chatMsgBoxDotCont3.classList.add("dotcont");
+    chatMsgBoxDotCont3.classList.add('dotcont');
     const chatMsgBoxDot3 = document.createElement('div');
-    chatMsgBoxDot3.classList.add("dot");
-    chatMsgBoxDot3.classList.add("dot3");
+    chatMsgBoxDot3.classList.add('dot');
+    chatMsgBoxDot3.classList.add('dot3');
     chatMsgBoxDotCont3.appendChild(chatMsgBoxDot3);
     chatMsgBoxLoadingCont.appendChild(chatMsgBoxDotCont1);
     chatMsgBoxLoadingCont.appendChild(chatMsgBoxDotCont2);
@@ -156,23 +158,31 @@ export class AppComponent implements OnInit {
       });
       onAuthStateChanged(getAuth(), (user) => {
         if (user) {
-          fetch('https://5003-firebase-ai-pickle2-1753311192596.cluster-ux5mmlia3zhhask7riihruxydo.cloudworkstations.dev/ai-pickle2/us-central1/generateTask', {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ data: { prompt: this.savedInput, uid: user.uid } })
-          })
-          .then(response => response.json())
-          .then(data => {
-            const chatMsg = document.createElement('p');
-            chatMsg.style.textOverflow = 'ellipsis';
-            chatMsg.style.overflow = 'hidden';
-            chatMsg.innerText = data.result.response;
-            chatMsgBoxLoadingCont.remove();
-            chatMsgBox.appendChild(chatMsg);
-            //this.addToChatField(data.result.response, "ai")
-          });
+          const functions = getFunctionsInstanceLazy();
+          const generateTaskFn = httpsCallable(functions, 'generateTask');
+          generateTaskFn({ prompt: this.savedInput, uid: user.uid })
+            .then((resp: any) => {
+              const payload = resp?.data ?? {};
+              const responseText =
+                (payload.result && payload.result.response) ??
+                payload.response ??
+                '';
+              const chatMsg = document.createElement('p');
+              chatMsg.style.textOverflow = 'ellipsis';
+              chatMsg.style.overflow = 'hidden';
+              chatMsg.innerText = responseText;
+              chatMsgBoxLoadingCont.remove();
+              chatMsgBox.appendChild(chatMsg);
+            })
+            .catch((error: any) => {
+              chatMsgBoxLoadingCont.remove();
+              const errMsg = document.createElement('p');
+              errMsg.innerText = `Error: ${
+                error?.message || 'generateTask failed'
+              }`;
+              chatMsgBox.appendChild(errMsg);
+              console.error('generateTask error:', error);
+            });
         }
       });
       //let something = await resp.json();
