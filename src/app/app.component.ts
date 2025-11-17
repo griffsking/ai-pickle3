@@ -78,6 +78,13 @@ export class AppComponent implements OnInit {
               ?.scrollTo(0, document.getElementById('chatBox')?.scrollHeight!);
           })
           .catch((error: any) => console.error('Error:', error));
+        // const helloWorld2 = httpsCallable(functions, 'helloWorld2');
+        // helloWorld2({ uid: user.uid })
+        //   .then((resp: any) => {
+        //     const data = resp.data;
+        //     console.log(data.image);
+        //   })
+        //   .catch((error: any) => console.error('Error:', error));
       }
     });
   }
