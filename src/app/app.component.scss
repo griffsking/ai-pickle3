@@ -1,41 +1,126 @@
+@font-face {
+  font-family: CircularXX-Book;
+  src: url(circular-book.ttf); /* url of the font */
+}
+// and (width <= 375px)
+@media screen and (width <= 375px) {
+  .inputContainer {
+    margin-left: 1rem !important;
+    margin-right: 4rem !important;
+  }
+
+  .sendButton {
+    right: 1rem !important
+  }
+
+  .messageBox {
+    width: 75% !important;
+    animation-name: openmessagemobile !important;
+    &.left {
+      margin-left: 1rem !important
+    }
+
+    &.right {
+      margin-right: 1rem !important
+    }
+  }
+
+  #chatBox {
+    height: 90% !important
+  }
+}
+
 .inputField {
+  height: 2.5rem;
+  font-family: CircularXX-Book;
+  font-size: 1rem;
   outline: none;
-  padding-left: 7px;
+  padding-left: 16px;
   width: 100%;
   margin: auto;
-  margin-left: 0.5rem;
-  margin-right: 0.5rem;
-  background-color: white
+  background-color: white;
+  border-radius: 1.5rem
+}
+
+.inputContainer {
+  display: flex;
+  margin-left: 20rem;
+  margin-right: 23rem;
+  align-items: center
 }
 
 .sendButton {
-  width: 4.5%;
-  margin: 0.25rem;
-  background: #99bfef;
+  width: 2.5rem;
+  background: #fff;
   border-radius: 1.5rem;
   cursor: pointer;
   justify-content: center;
   display: flex;
   align-items: center;
+  position: absolute;
+  right: 20rem;
+  font-size: 14.4px;
+  aspect-ratio: 1 / 1;
+  transition-delay: 0s;
+  transition-duration: .3s;
+  transition-property: all;
+  transition-timing-function: linear;
+
+  i {
+    color: #000;
+    transition-delay: 0s;
+    transition-duration: .3s;
+    transition-property: all;
+    transition-timing-function: linear;
+  }
+}
+
+.disabled {
+  background: #aaaaaa !important;
+  cursor: not-allowed
+}
+
+.disabled:hover {
+  i {
+    color: #000 !important
+  }
 }
 
 .sendButton:hover {
-  background: #d2e6ff;
+  background: #1a80c3;
+  i {
+    color: #fff
+  }
 }
 
 .messageBox {
   width: 50%;
+  font-family: CircularXX-Book;
+  font-size: 1rem;
   margin: auto;
   margin-bottom: 0.5rem;
   padding-left: 0.5rem;
   padding-right: 0.5rem;
   line-height: 1.35;
   // background: var(--color-gray-500);
-  background: #8a8c97;
-  border-radius: var(--radius-md);
+  background: rgb(17 35 53);
+  border-radius: 6px;
+  transition-duration: .3s;
   animation-name: openmessage;
   animation-duration: 0.25s;
   animation-fill-mode: forwards;
+
+  &.left {
+    margin-left: 5rem
+  }
+
+  &.right {
+    margin-right: 5rem
+  }
+
+  p {
+    color: white
+  }
 }
 
 .loadingcont {
@@ -73,6 +158,11 @@
 
 .dot3 {
   animation-name: dot3;
+}
+
+.customScroll {
+  scrollbar-color: #8a8c97 #00000000;
+  scrollbar-width: thin;
 }
 
 @keyframes dot {
@@ -133,5 +223,14 @@
   }
   to {
       width: "50%"
+  }
+}
+
+@keyframes openmessagemobile {
+  from {
+    width: 0
+  }
+  to {
+      width: "75%"
   }
 }

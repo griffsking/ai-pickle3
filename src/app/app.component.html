@@ -1,10 +1,8 @@
-<div class="bg-black" style="height: 100%; padding-top: 20px">
-  <div class="bg-gray-700 rounded-md m-auto overflow-auto" id="chatBox" style="height: 80%; width: 90%; padding-top: 1rem"></div>
-  <div class="bg-gray-700 my-1 rounded-md m-auto" style="height: 10%; width: 90%">
-    <div style="display: flex; height: 100%">
-      <input class="inputField rounded-md" placeholder="Ask any question..." [(ngModel)]="myInput"
-      (keydown)="addToChatFieldEnter($event); onGoClickEnter($event)"/>
-      <div class="sendButton" title="Ask Gemini" (click)="addToChatFieldButton(); onGoClick()"><i class="fa-solid fa-paper-plane" style="color: #ffffff;"></i></div>
+<div style="background: linear-gradient(135deg,#000d1a,#112335); height: 100%; padding-top: 20px">
+  <div class="overflow-auto customScroll" id="chatBox" style="height: 80%; padding-top: 1rem; margin-bottom: 1rem"></div>
+  <div class="inputContainer">
+      <input class="inputField" id="inputField" autofocus placeholder="Ask for advice..." [(ngModel)]="myInput"
+      (keydown)="onGoClickEnter($event)"/>
+      <div class="sendButton" title="Ask Gemini" (click)="onGoClick()"><i class="fa-solid fa-paper-plane"></i></div>
     </div>
-  </div>
 </div>
