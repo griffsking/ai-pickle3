@@ -28,7 +28,7 @@ setGlobalOptions({ maxInstances: 1 })
 if (!getAdminApps().length) {
   initializeApp({
     // apiKey: process.env.FIREBASE_API_KEY,
-    apiKey: "AIzaSyBToTul3CFDKt3Ip9TTuEzgL_5-syLefSM",
+    apiKey: process.env.FIREBASE_API_KEY,
     authDomain: "ai-pickle2.firebaseapp.com",
     projectId: "ai-pickle2",
     storageBucket: "ai-pickle2.firebasestorage.app",
@@ -74,7 +74,7 @@ let experimentModel
 //region getModel
 function getModel() {
   if (!experimentModel) {
-    const apiKey = "AIzaSyAoU8nedhG49MlNzSVIXatGWFE3SWmiyzk"
+    const apiKey = process.env.FIREBASE_API_KEY
     if (!apiKey) {
       logger.error(
         "Gemini API key missing. Set GOOGLE_API_KEY in env or secrets."
