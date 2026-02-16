@@ -22,11 +22,13 @@ import {
   initializeApp as initAdmin,
   getApps as getAdminApps,
 } from "firebase-admin/app"
+import testProfile from "../src/app/test_profiles.json" with { type: "json" }
 
 setGlobalOptions({ maxInstances: 1 })
 if (!getAdminApps().length) {
   initializeApp({
-    apiKey: "AIzaSyDmr3EwHbow7ownYfppIsa9DwwLwv30m2U",
+    // apiKey: process.env.FIREBASE_API_KEY,
+    apiKey: "AIzaSyBToTul3CFDKt3Ip9TTuEzgL_5-syLefSM",
     authDomain: "ai-pickle2.firebaseapp.com",
     projectId: "ai-pickle2",
     storageBucket: "ai-pickle2.firebasestorage.app",
@@ -72,7 +74,7 @@ let experimentModel
 //region getModel
 function getModel() {
   if (!experimentModel) {
-    const apiKey = "AIzaSyDmr3EwHbow7ownYfppIsa9DwwLwv30m2U"
+    const apiKey = "AIzaSyAoU8nedhG49MlNzSVIXatGWFE3SWmiyzk"
     if (!apiKey) {
       logger.error(
         "Gemini API key missing. Set GOOGLE_API_KEY in env or secrets."
@@ -138,6 +140,13 @@ export const helloWorld2 = onCall(async (request) => {
 //region generateTask
 export const generateTask = onCall({timeoutSeconds: 300}, async (request, response) => {
   const model = getModel()
+  if (testProfile.use) {
+    for (let prop in testProfile) {
+      if (prop === "use" || prop === "uid") continue
+      const ref = doc(collection(getFirestore(getApp()), "profiles"), testProfile.uid)
+      await setDoc(ref, { [prop]: testProfile[prop] }, { merge: true })
+    }
+  }
 
   const chatRef = await getDocs(
     query(

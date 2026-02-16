@@ -9,6 +9,7 @@ import {
   getFunctions,
   httpsCallable,
 } from 'firebase/functions'
+import * as testProfile from "./test_profiles.json"
 
 let functionsInstance: ReturnType<typeof getFunctions> | null = null
 function getFunctionsInstanceLazy() {
@@ -156,7 +157,7 @@ export class AppComponent implements OnInit {
           const functions = getFunctionsInstanceLazy()
           const generateTaskFn = httpsCallable(functions, 'generateTask');
           (async () => {
-            const { stream } = await generateTaskFn.stream({ prompt: this.savedInput, uid: user.uid })
+            const { stream } = await generateTaskFn.stream({ prompt: this.savedInput, uid: testProfile.use ? testProfile.uid : user.uid })
             const chatMsg = document.createElement('p')
             chatMsg.style.textOverflow = 'ellipsis'
             chatMsg.style.overflow = 'hidden'
