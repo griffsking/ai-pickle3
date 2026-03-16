@@ -74,7 +74,7 @@ let experimentModel
 //region getModel
 function getModel() {
   if (!experimentModel) {
-    const apiKey = process.env.FIREBASE_API_KEY
+    const apiKey = process.env.API_KEY
     if (!apiKey) {
       logger.error(
         "Gemini API key missing. Set GOOGLE_API_KEY in env or secrets."
@@ -86,9 +86,10 @@ function getModel() {
       model: "gemini-2.5-flash-lite", //Do not ever use gemini-2.5-flash without the "-lite", it doesn't work!
       tools,
       systemInstruction: `You are a professional Jewish matchmaker. Analyze the JSON data and return data based off of keywords from the prompt.
-      If the prompt asks something among the lines of "What is my ---?" or "Can you tell me what my --- is?", check if what they're asking for exists in their profile and say it.
+      If the prompt asks something among the lines of "What is my ---?" or "Can you tell me what my --- is?", check if what they're asking for exists in their profile.
       If the prompt asks you to change an entry in their profile (not mentioning their profile picture) to a new value, updateDocument should be used, followed by saying that the change should have been made.
-      If the prompt asks for advice on their profile picture, you must call the getImage function and then provide feedback on the image.`
+      If the prompt asks for advice on their profile picture, you must call the getImage function and then provide feedback on the image.
+      Answers should never be blunt, always answer the user in a casual, but professional manner.`
       // If none of the previously mentioned instructions are triggered, you must say that you're an AI dating coach and that you only respond to questions about dating advice and the user's profile.`
     })
   }
