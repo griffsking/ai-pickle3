@@ -65,6 +65,19 @@ const tools = [
           required: ["user"],
         },
       },
+      {
+        name: "addPrompt",
+        description: "Add to the user's prompts.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            user: { type: "STRING", description: "UID of the user." },
+            question: { type: "STRING", description: "The question the user provides." },
+            answer: { type: "STRING", description: "The answer the user provides." }
+          },
+          required: ["user"],
+        },
+      },
     ],
   },
 ]
@@ -89,6 +102,8 @@ function getModel() {
       If the prompt asks something among the lines of "What is my ---?" or "Can you tell me what my --- is?", check if what they're asking for exists in their profile.
       If the prompt asks you to change an entry in their profile (not mentioning their profile picture) to a new value, updateDocument should be used, followed by saying that the change should have been made.
       If the prompt asks for advice on their profile picture, you must call the getImage function and then provide feedback on the image.
+      If the prompt asks to add a prompt to their profile, ask them for a question and an answer to that question. After the user has given a question and an answer, call the addPrompt function to append a new map field onto the end of the user's prompt array field which contains a "question" field and an "answer" field, without replacing the preexisitng prompt elements.
+      If the prompt asks to add a prompt to their profile and includes a question and an answer to that question, call the addPrompt function to append a new map field onto the end of the user's prompt array field which contains a "question" field and an "answer" field, without replacing the preexisitng prompt elements.
       Answers should never be blunt, always answer the user in a casual, but professional manner.`
       // If none of the previously mentioned instructions are triggered, you must say that you're an AI dating coach and that you only respond to questions about dating advice and the user's profile.`
     })
@@ -227,6 +242,12 @@ export const generateTask = onCall({timeoutSeconds: 300}, async (request, respon
         user: request.data.uid,
       })
     }
+    else if (name === "addPrompt") {
+      toolResult = await addPrompt({
+        ...args,
+        user: request.data.uid,
+      })
+    }
     try {
       result = await model.generateContentStream({
         contents: [
@@ -313,4 +334,16 @@ async function getImage(request) {
     logger.error("getImage failed", e)
     return { ok: false, error: "GET_IMAGE_FAILED" }
   }
+}
+
+//region addPrompt
+async function addPrompt(request) {
+    const { user, question, answer } = request || {}
+    const uid = String(user || "").trim()
+    console.log(request)
+    console.log(question)
+    console.log(answer)
+    const ref = doc(collection(getFirestore(getApp()), "profiles"), uid)
+    await setDoc(ref, { "prompt": [ {"question": question, "answer": answer } ] }, { merge: true })
+    return { ok: true }
 }
