@@ -64,8 +64,8 @@ export class AppComponent implements OnInit {
     onAuthStateChanged(getAuth(), (user) => {
       if (user) {
         const functions = getFunctionsInstanceLazy()
-        const helloWorld = httpsCallable(functions, 'helloWorld')
-        helloWorld({ uid: user.uid })
+        const getMessages = httpsCallable(functions, 'getMessages')
+        getMessages({ uid: user.uid })
           .then((resp: any) => {
             const data = resp.data
             console.log(data)

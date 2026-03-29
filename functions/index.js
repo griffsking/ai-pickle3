@@ -12,14 +12,15 @@ import {
   query,
   orderBy,
   limit,
+  arrayUnion,
   setDoc,
   getDoc,
+  updateDoc,
   addDoc,
   Timestamp,
 } from "firebase/firestore"
-import { getStorage, ref, list, getDownloadURL } from "firebase/storage"
+import { getStorage, ref, getDownloadURL } from "firebase/storage"
 import {
-  initializeApp as initAdmin,
   getApps as getAdminApps,
 } from "firebase-admin/app"
 import testProfile from "../src/app/test_profiles.json" with { type: "json" }
@@ -111,8 +112,8 @@ function getModel() {
   return experimentModel
 }
 
-//region helloWorld
-export const helloWorld = onCall(async (request) => {
+//region getMessages
+export const getMessages = onCall(async (request) => {
   console.log(request.data.uid)
   const chatRef = await getDocs(
     query(
@@ -125,17 +126,6 @@ export const helloWorld = onCall(async (request) => {
     )
   )
 
-  // const storage = getStorage(getApp(), "gs://ai-pickle2.firebasestorage.app")
-  // logger.info(request.data.uid)
-  // const storageRef = ref(storage, "profiles/" + request.data.uid + "/images")
-  // const firstImage = await list(storageRef, { maxResults: 1 })
-  //logger.info(firstImage.items)
-  //Use this to copy a sample uid to anon auth
-  /*const profilesRef = doc(getFirestore(getApp()), "settings", "u01")
-  const profilesRef2 = doc(getFirestore(getApp()), "settings", request.data.uid)
-  const profilesSnap = await getDoc(profilesRef)
-  await setDoc(profilesRef2, profilesSnap.data())*/
-
   let messages = []
   chatRef.forEach((message) => {
     messages.push(message.data())
@@ -143,15 +133,15 @@ export const helloWorld = onCall(async (request) => {
   return messages
 })
 
-//region helloWorld2
-export const helloWorld2 = onCall(async (request) => {
-  const storage = getStorage(getApp(), "gs://ai-pickle2.firebasestorage.app")
-  const storageRef = ref(storage, "profiles/" + request.data.uid + "/images/image0.jpg")
-  const getImage = await getDownloadURL(storageRef)
-  const response = await fetch(getImage)
-  const data = await response.blob()
-  return {image: data}
-})
+//region unneeded?
+// export const helloWorld2 = onCall(async (request) => {
+//   const storage = getStorage(getApp(), "gs://ai-pickle2.firebasestorage.app")
+//   const storageRef = ref(storage, "profiles/" + request.data.uid + "/images/image0.jpg")
+//   const getImage = await getDownloadURL(storageRef)
+//   const response = await fetch(getImage)
+//   const data = await response.blob()
+//   return {image: data}
+// })
 
 //region generateTask
 export const generateTask = onCall({timeoutSeconds: 300}, async (request, response) => {
@@ -305,7 +295,6 @@ async function updateDocument(request) {
   }
 
   try {
-    // Use the same client SDK pattern as helloWorld
     const ref = doc(collection(getFirestore(getApp()), "profiles"), uid)
     await setDoc(ref, { [field]: newValue }, { merge: true })
     return { ok: true, updated: { user: uid, entry: field, value: newValue } }
@@ -344,6 +333,9 @@ async function addPrompt(request) {
     console.log(question)
     console.log(answer)
     const ref = doc(collection(getFirestore(getApp()), "profiles"), uid)
-    await setDoc(ref, { "prompt": [ {"question": question, "answer": answer } ] }, { merge: true })
+    await updateDoc(ref, {
+      "prompt": arrayUnion({"question": question, "answer": answer })
+    });
+    // await setDoc(ref, { "prompt": [ {"question": question, "answer": answer } ] }, { merge: true })
     return { ok: true }
 }
